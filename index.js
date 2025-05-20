@@ -84,11 +84,13 @@ app.post('/api/changeStatus', (req, res) => {
     return res.status(403).json({ error: 'Nieautoryzowany dostęp - nieprawidłowy klucz API.' });
   }
 
-  if (typeof newStatus !== "boolean") {
+  if(newStatus === "open") {
+    isRoomOpen = true;
+  } else if(newStatus === "close"){
+    isRoomOpen = false;
+  } else {
     return res.status(400).json({ error: 'Nieprawidłowy status. Dozwolone wartości: "otwarty" lub "zamknięty".' });
   }
-
-  isRoomOpen = newStatus;
 
   res.json({
     message: `Status pokoju pomyślnie zmieniony na "${isRoomOpen}".`,
