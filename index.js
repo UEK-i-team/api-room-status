@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios'); // Import axios
 require('dotenv').config();
 
 const app = express();
@@ -92,6 +93,21 @@ app.post('/api/changeStatus', (req, res) => {
   }
 
   isRoomOpen = newStatus === "open";
+
+  // Send webhook notification
+  const webhookUrl = 'https://hook.eu2.make.com/act5es4rpqu1aap7uxs7ts2u38lsvli5';
+  const payload = {
+    newStatus: newStatus,
+    apiKey: ACCESS_KEY 
+  };
+
+  axios.post(webhookUrl, payload)
+    .then(response => {
+      console.log("Webhook notification sent successfully.");
+    })
+    .catch(error => {
+      console.error("Error sending webhook notification:", error);
+    });
 
   res.json({
     message: `Room status successfully changed to "${newStatus}".`,
