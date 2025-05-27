@@ -2,6 +2,10 @@ const request = require('supertest');
 const express = require('express'); // Import express to define the app
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios'); // Import axios for mocking
+
+// Mock axios
+jest.mock('axios');
 
 // Manually set up a simple app mimicking the main app structure for testing purposes
 // This avoids directly requiring '../../index.js' which might auto-start the server
@@ -68,21 +72,29 @@ describe('API Endpoint /api/changeStatus', () => {
   // Reset isRoomOpen before each test to ensure test isolation
   beforeEach(() => {
     isRoomOpen = false; // Default to closed
+    axios.post.mockClear(); // Clear mock before each test
   });
 
-  it('should change status to "open" and update isRoomOpen to true', async () => {
+  it('should change status to "open", update isRoomOpen to true, and call webhook', async () => {
     const response = await request(app)
       .post('/api/changeStatus')
       .send({ newStatus: 'open', apiKey: ACCESS_KEY });
     expect(response.statusCode).toBe(200);
     expect(response.body.message).toBe('Room status successfully changed to "open".');
-    
+
     // Verify isRoomOpen by checking the root endpoint's response
     const statusResponse = await request(app).get('/');
     expect(statusResponse.body.message).toBe('OPEN');
+
+    // Webhook assertions
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(axios.post).toHaveBeenCalledWith(
+      'https://hook.eu2.make.com/act5es4rpqu1aap7uxs7ts2u38lsvli5',
+      { newStatus: 'open', apiKey: ACCESS_KEY }
+    );
   });
 
-  it('should change status to "close" and update isRoomOpen to false', async () => {
+  it('should change status to "close", update isRoomOpen to false, and call webhook', async () => {
     // First, open the room to test closing it
     await request(app)
       .post('/api/changeStatus')
@@ -97,53 +109,86 @@ describe('API Endpoint /api/changeStatus', () => {
     // Verify isRoomOpen by checking the root endpoint's response
     const statusResponse = await request(app).get('/');
     expect(statusResponse.body.message).toBe('CLOSED');
+
+    // Webhook assertions
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(axios.post).toHaveBeenCalledWith(
+      'https://hook.eu2.make.com/act5es4rpqu1aap7uxs7ts2u38lsvli5',
+      { newStatus: 'close', apiKey: ACCESS_KEY }
+    );
   });
 
-  it('should return 400 for invalid string status', async () => {
+  it('should call webhook even if webhook call fails, and API should still succeed', async () => {
+    axios.post.mockRejectedValueOnce(new Error('Webhook failed'));
+
+    const response = await request(app)
+      .post('/api/changeStatus')
+      .send({ newStatus: 'open', apiKey: ACCESS_KEY });
+
+    expect(response.statusCode).toBe(200); // Main API call should succeed
+    expect(response.body.message).toBe('Room status successfully changed to "open".');
+    expect(axios.post).toHaveBeenCalledTimes(1); // Webhook should still be called
+  });
+
+  it('should return 400 for invalid string status and not call webhook', async () => {
     const response = await request(app)
       .post('/api/changeStatus')
       .send({ newStatus: 'pending', apiKey: ACCESS_KEY });
     expect(response.statusCode).toBe(400);
     expect(response.body.error).toBe('Invalid status. Allowed values are "open" or "close".');
+    expect(axios.post).not.toHaveBeenCalled();
   });
 
-  it('should return 400 for non-string status (boolean true)', async () => {
+  it('should return 400 for non-string status (boolean true) and not call webhook', async () => {
     const response = await request(app)
       .post('/api/changeStatus')
       .send({ newStatus: true, apiKey: ACCESS_KEY });
     expect(response.statusCode).toBe(400);
     expect(response.body.error).toBe('Invalid status. Allowed values are "open" or "close".');
+    expect(axios.post).not.toHaveBeenCalled();
   });
 
-  it('should return 400 for non-string status (number 123)', async () => {
+  it('should return 400 for non-string status (number 123) and not call webhook', async () => {
     const response = await request(app)
       .post('/api/changeStatus')
       .send({ newStatus: 123, apiKey: ACCESS_KEY });
     expect(response.statusCode).toBe(400);
     expect(response.body.error).toBe('Invalid status. Allowed values are "open" or "close".');
+    expect(axios.post).not.toHaveBeenCalled();
   });
   
-  it('should return 403 for invalid API key', async () => {
+  it('should return 403 for invalid API key and not call webhook', async () => {
     const response = await request(app)
       .post('/api/changeStatus')
       .send({ newStatus: 'open', apiKey: 'wrong_key' });
     expect(response.statusCode).toBe(403);
     expect(response.body.error).toBe('Unauthorized access - invalid API key.');
+    expect(axios.post).not.toHaveBeenCalled();
   });
 
-  it('should return correct success message for "open"', async () => {
+  it('should return correct success message for "open" and call webhook', async () => {
     const response = await request(app)
       .post('/api/changeStatus')
       .send({ newStatus: 'open', apiKey: ACCESS_KEY });
     expect(response.statusCode).toBe(200);
     expect(response.body.message).toBe('Room status successfully changed to "open".');
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(axios.post).toHaveBeenCalledWith(
+      'https://hook.eu2.make.com/act5es4rpqu1aap7uxs7ts2u38lsvli5',
+      { newStatus: 'open', apiKey: ACCESS_KEY }
+    );
   });
 
-  it('should return correct success message for "close"', async () => {
+  it('should return correct success message for "close" and call webhook', async () => {
     const response = await request(app)
       .post('/api/changeStatus')
       .send({ newStatus: 'close', apiKey: ACCESS_KEY });
     expect(response.statusCode).toBe(200);
     expect(response.body.message).toBe('Room status successfully changed to "close".');
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(axios.post).toHaveBeenCalledWith(
+      'https://hook.eu2.make.com/act5es4rpqu1aap7uxs7ts2u38lsvli5',
+      { newStatus: 'close', apiKey: ACCESS_KEY }
+    );
   });
 });
