@@ -50,7 +50,7 @@ This is a simple Node.js Express application that displays the status of a "room
 -   **Body (JSON):**
     ```json
     {
-      "newStatus": true, // boolean: true for "open", false for "closed"
+      "newStatus": "open", // string: "open" or "close"
       "apiKey": "your_secret_api_key_here"
     }
     ```
@@ -67,10 +67,10 @@ This is a simple Node.js Express application that displays the status of a "room
     }
     ```
 -   **Error Responses:**
-    -   `400 Bad Request`: If `newStatus` is missing or not a boolean.
+    -   `400 Bad Request`: If `newStatus` is missing or not "open" or "close".
         ```json
         {
-          "error": "Invalid status. Allowed values are true (for open) or false (for close)."
+          "error": "Invalid status. Allowed values are \"open\" or \"close\"."
         }
         ```
     -   `403 Forbidden`: If `apiKey` is missing or incorrect.
