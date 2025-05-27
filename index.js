@@ -87,14 +87,14 @@ app.post('/api/changeStatus', (req, res) => {
     return res.status(403).json({ error: 'Unauthorized access - invalid API key.' });
   }
 
-  if (typeof newStatus !== 'boolean') {
-    return res.status(400).json({ error: 'Invalid status. Allowed values are true (for open) or false (for close).' });
+  if (newStatus !== "open" && newStatus !== "close") {
+    return res.status(400).json({ error: 'Invalid status. Allowed values are "open" or "close".' });
   }
 
-  isRoomOpen = newStatus;
+  isRoomOpen = newStatus === "open";
 
   res.json({
-    message: `Room status successfully changed to "${isRoomOpen ? 'open' : 'closed'}".`,
+    message: `Room status successfully changed to "${newStatus}".`,
   });
 });
 
