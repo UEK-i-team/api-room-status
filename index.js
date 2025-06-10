@@ -95,7 +95,7 @@ app.post('/api/changeStatus', (req, res) => {
   isRoomOpen = newStatus === "open";
 
   // Send webhook notification
-  const webhookUrl = 'https://hook.eu2.make.com/act5es4rpqu1aap7uxs7ts2u38lsvli5';
+  const webhookUrl = 'https://iteam-dbot.onrender.com/door-status';
   const payload = {
     newStatus: newStatus,
     apiKey: ACCESS_KEY 
